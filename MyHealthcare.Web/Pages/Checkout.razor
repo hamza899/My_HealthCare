@@ -206,7 +206,17 @@ else
     private async Task PlaceOrder()
     {
         error = null;
+
+        var validationError = ValidateAddress();
+        if (validationError is not null)
+        {
+            error = validationError;
+            StateHasChanged();
+            return;
+        }
+
         placing = true;
+        StateHasChanged();
 
         model.Items = items;
 
@@ -220,7 +230,24 @@ else
         }
         else
         {
-            error = result.ErrorMessage;
+            error = result.ErrorMessage ?? "Order placement failed. Please try again.";
+            StateHasChanged();
         }
+    }
+
+    private string? ValidateAddress()
+    {
+        var a = model.DeliveryAddress;
+        if (string.IsNullOrWhiteSpace(a.FullName))
+            return "Please enter your full name.";
+        if (string.IsNullOrWhiteSpace(a.Phone))
+            return "Please enter your phone number.";
+        if (a.Phone.Trim().Length < 10)
+            return "Please enter a valid phone number (at least 10 digits).";
+        if (string.IsNullOrWhiteSpace(a.Street))
+            return "Please enter your street address.";
+        if (string.IsNullOrWhiteSpace(a.City))
+            return "Please enter your city.";
+        return null;
     }
 }
