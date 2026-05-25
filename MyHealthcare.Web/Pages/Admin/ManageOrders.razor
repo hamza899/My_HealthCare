@@ -1,0 +1,144 @@
+@page "/admin/orders"
+@layout AdminLayout
+@inject AdminService Admin
+@inject AuthService Auth
+
+<PageTitle>Manage Orders - Admin</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-receipt me-2"></i>Orders</h2>
+    <button class="btn btn-outline-primary" @onclick="Reload">
+        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+    </button>
+</div>
+
+<div class="mb-3 d-flex flex-wrap gap-2">
+    <button class="filter-pill @(statusFilter is null ? "active" : "")"
+            @onclick="@(() => SetFilter(null))">All</button>
+    @foreach (var s in Enum.GetValues<OrderStatus>())
+    {
+        <button class="filter-pill @(statusFilter == s ? "active" : "")"
+                @onclick="@(() => SetFilter(s))">
+            @s
+        </button>
+    }
+</div>
+
+@if (orders is null)
+{
+    <LoadingSpinner />
+}
+else if (!orders.Any())
+{
+    <div class="card">
+        <div class="card-body text-center py-4 text-muted">
+            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+            <p class="mt-2 mb-0">No orders found.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var o in orders)
+        {
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+                            <div>
+                                <div class="fw-bold">
+                                    <code>@o.OrderNumber</code>
+                                </div>
+                                <small class="text-muted">
+                                    @o.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge @StatusBadge(o.OrderStatus)">@o.OrderStatus</span>
+                                <div class="fw-bold mt-1 text-primary">Rs @o.TotalAmount.ToString("N0")</div>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 small mb-2">
+                            <div class="col-md-6">
+                                <strong>Customer:</strong> @o.DeliveryAddress.FullName<br />
+                                <strong>Phone:</strong> @o.DeliveryAddress.Phone<br />
+                                <strong>Address:</strong> @o.DeliveryAddress.Street, @o.DeliveryAddress.City
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Payment:</strong>
+                                @(o.PaymentMethod == PaymentMethod.CashOnDelivery ? "Cash on Delivery" : "Card")
+                                <span class="badge bg-secondary ms-1">@o.PaymentStatus</span><br />
+                                <strong>Items:</strong> @o.Items.Count<br />
+                                <small>@string.Join(", ", o.Items.Take(2).Select(i => $"{i.MedicineName}×{i.Quantity}"))</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap mt-2">
+                            <select class="form-select form-select-sm" style="max-width: 200px;"
+                                    @onchange="@(e => UpdateStatus(o, e.Value?.ToString()))">
+                                @foreach (var s in Enum.GetValues<OrderStatus>())
+                                {
+                                    <option value="@s" selected="@(s == o.OrderStatus)">@s</option>
+                                }
+                            </select>
+                            @if (updating == o.Id)
+                            {
+                                <span class="spinner-border spinner-border-sm align-self-center"></span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<OrderDto>? orders;
+    private OrderStatus? statusFilter;
+    private string? updating;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        orders = null;
+        StateHasChanged();
+        orders = await Admin.GetAllOrdersAsync(statusFilter);
+    }
+
+    private async Task SetFilter(OrderStatus? s)
+    {
+        statusFilter = s;
+        await Reload();
+    }
+
+    private async Task UpdateStatus(OrderDto order, string? newStatus)
+    {
+        if (string.IsNullOrEmpty(newStatus) || !Enum.TryParse<OrderStatus>(newStatus, out var status))
+            return;
+        if (status == order.OrderStatus) return;
+
+        updating = order.Id;
+        StateHasChanged();
+        await Admin.UpdateOrderStatusAsync(order.Id, status);
+        updating = null;
+        await Reload();
+    }
+
+    private static string StatusBadge(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending => "bg-warning text-dark",
+        OrderStatus.Confirmed => "bg-info",
+        OrderStatus.Shipped => "bg-primary",
+        OrderStatus.Delivered => "bg-success",
+        OrderStatus.Cancelled => "bg-danger",
+        _ => "bg-secondary"
+    };
+}

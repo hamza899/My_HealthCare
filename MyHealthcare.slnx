@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MyHealthcare.Api/MyHealthcare.Api.csproj" />
+  <Project Path="MyHealthcare.Shared/MyHealthcare.Shared.csproj" />
+  <Project Path="MyHealthcare.Web/MyHealthcare.Web.csproj" />
+</Solution>

@@ -1,0 +1,180 @@
+@page "/cart"
+@inject CartService CartSvc
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Shopping Cart - My Healthcare</PageTitle>
+
+<h1 class="section-title">
+    <i class="bi bi-cart3 me-2"></i> Shopping Cart
+</h1>
+
+@if (items is null)
+{
+    <LoadingSpinner />
+}
+else if (!items.Any())
+{
+    <div class="text-center py-5">
+        <i class="bi bi-cart-x" style="font-size: 4rem; color: var(--text-muted);"></i>
+        <h4 class="mt-3">Your cart is empty</h4>
+        <p class="text-muted">Browse our medicines and add some to your cart</p>
+        <a href="catalog" class="btn btn-primary">
+            <i class="bi bi-arrow-left me-2"></i> Continue Shopping
+        </a>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-0">
+                    @foreach (var item in items)
+                    {
+                        <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+                            <div class="rounded" style="width: 80px; height: 80px; background: var(--bg-light); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 2rem; flex-shrink: 0;">
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" alt="@item.MedicineName" style="max-width: 100%; max-height: 100%;" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-capsule"></i>
+                                }
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <a href="@($"medicine/{item.MedicineId}")" class="text-decoration-none text-dark">
+                                    <div class="fw-semibold">@item.MedicineName</div>
+                                </a>
+                                @if (item.PrescriptionRequired)
+                                {
+                                    <span class="badge bg-danger small mt-1">
+                                        <i class="bi bi-clipboard2-pulse"></i> Rx Required
+                                    </span>
+                                }
+                                <div class="text-muted small mt-1">Rs @item.UnitPrice.ToString("N0") each</div>
+                            </div>
+
+                            <div class="input-group" style="max-width: 130px;">
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        @onclick="@(() => UpdateQuantity(item.MedicineId, item.Quantity - 1))">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <input type="number" class="form-control form-control-sm text-center"
+                                       value="@item.Quantity"
+                                       @onchange="@(e => UpdateQuantity(item.MedicineId, ParseInt(e.Value)))" />
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        @onclick="@(() => UpdateQuantity(item.MedicineId, item.Quantity + 1))">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+
+                            <div class="text-end" style="min-width: 100px;">
+                                <div class="fw-bold">Rs @item.Subtotal.ToString("N0")</div>
+                                <button class="btn btn-sm btn-link text-danger p-0"
+                                        @onclick="@(() => Remove(item.MedicineId))">
+                                    <i class="bi bi-trash"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex justify-content-between">
+                <a href="catalog" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-2"></i> Continue Shopping
+                </a>
+                <button class="btn btn-outline-danger" @onclick="ClearCart">
+                    <i class="bi bi-trash me-2"></i> Clear Cart
+                </button>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 80px;">
+                <div class="card-body">
+                    <h5 class="card-title">Order Summary</h5>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Items (@itemCount)</span>
+                        <span>Rs @total.ToString("N0")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Delivery</span>
+                        <span class="text-success">FREE</span>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between fw-bold mb-3">
+                        <span>Total</span>
+                        <span class="text-primary fs-5">Rs @total.ToString("N0")</span>
+                    </div>
+
+                    @if (items.Any(i => i.PrescriptionRequired))
+                    {
+                        <div class="alert alert-warning small">
+                            <i class="bi bi-clipboard2-pulse me-1"></i>
+                            <strong>Prescription Required</strong> for some items.
+                            You'll be asked to upload it at checkout.
+                        </div>
+                    }
+
+                    <button class="btn btn-primary w-100 btn-lg" @onclick="GoToCheckout">
+                        <i class="bi bi-bag-check me-2"></i> Proceed to Checkout
+                    </button>
+                    <p class="text-center text-muted small mt-2 mb-0">
+                        <i class="bi bi-shield-check"></i> Secure checkout · COD available
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<CartItemDto>? items;
+    private int itemCount;
+    private decimal total;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CartSvc.OnChange += Refresh;
+        await LoadCart();
+    }
+
+    private async Task LoadCart()
+    {
+        items = await CartSvc.GetItemsAsync();
+        itemCount = items.Sum(i => i.Quantity);
+        total = items.Sum(i => i.Subtotal);
+        StateHasChanged();
+    }
+
+    private void Refresh() => _ = LoadCart();
+
+    public void Dispose() => CartSvc.OnChange -= Refresh;
+
+    private static int ParseInt(object? v)
+    {
+        if (v is null) return 1;
+        return int.TryParse(v.ToString(), out var n) ? n : 1;
+    }
+
+    private async Task UpdateQuantity(string medicineId, int newQty)
+    {
+        await CartSvc.UpdateQuantityAsync(medicineId, newQty);
+    }
+
+    private async Task Remove(string medicineId)
+    {
+        await CartSvc.RemoveAsync(medicineId);
+    }
+
+    private async Task ClearCart()
+    {
+        await CartSvc.ClearAsync();
+    }
+
+    private void GoToCheckout() => Nav.NavigateTo("checkout");
+}

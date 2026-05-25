@@ -1,0 +1,117 @@
+@page "/register"
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Sign Up - My Healthcare</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-person-plus text-primary" style="font-size: 3rem;"></i>
+                    <h2 class="mt-2 mb-0">Create Account</h2>
+                    <p class="text-muted">Join My Healthcare today</p>
+                </div>
+
+                <EditForm Model="model" OnValidSubmit="HandleRegister" FormName="RegisterForm">
+                    <DataAnnotationsValidator />
+
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <div class="alert alert-danger small">
+                            <i class="bi bi-exclamation-circle me-1"></i> @error
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <InputText class="form-control" @bind-Value="model.FullName"
+                                       placeholder="Hamza Ismail" autocomplete="name" />
+                        </div>
+                        <ValidationMessage For="@(() => model.FullName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <InputText class="form-control" type="email" @bind-Value="model.Email"
+                                       placeholder="you@example.com" autocomplete="email" />
+                        </div>
+                        <ValidationMessage For="@(() => model.Email)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                            <InputText class="form-control" type="tel" @bind-Value="model.Phone"
+                                       placeholder="+923001234567" autocomplete="tel" />
+                        </div>
+                        <ValidationMessage For="@(() => model.Phone)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <InputText class="form-control" type="password" @bind-Value="model.Password"
+                                       placeholder="At least 6 characters" autocomplete="new-password" />
+                        </div>
+                        <ValidationMessage For="@(() => model.Password)" />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" disabled="@busy">
+                        @if (busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Creating account...</span>
+                        }
+                        else
+                        {
+                            <i class="bi bi-person-plus me-2"></i>
+                            <span>Create Account</span>
+                        }
+                    </button>
+                </EditForm>
+
+                <hr class="my-4" />
+                <p class="text-center mb-0">
+                    Already have an account? <a href="login">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterDto model = new();
+    private string? error;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        if (Auth.IsAuthenticated) Nav.NavigateTo("");
+    }
+
+    private async Task HandleRegister()
+    {
+        busy = true;
+        error = null;
+        var result = await Auth.RegisterAsync(model);
+        busy = false;
+
+        if (result.IsSuccess)
+        {
+            Nav.NavigateTo("");
+        }
+        else
+        {
+            error = result.ErrorMessage;
+        }
+    }
+}

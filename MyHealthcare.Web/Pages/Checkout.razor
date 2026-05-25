@@ -1,0 +1,226 @@
+@page "/checkout"
+@inject CartService CartSvc
+@inject OrderService Orders
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>Checkout - My Healthcare</PageTitle>
+
+<h1 class="section-title">
+    <i class="bi bi-bag-check me-2"></i> Checkout
+</h1>
+
+@if (!ready)
+{
+    <LoadingSpinner />
+}
+else if (!Auth.IsAuthenticated)
+{
+    <div class="card">
+        <div class="card-body p-4 text-center">
+            <i class="bi bi-shield-lock" style="font-size: 4rem; color: var(--primary);"></i>
+            <h4 class="mt-3">Sign In Required</h4>
+            <p class="text-muted">Order place karne ke liye pehle sign in karna hoga.</p>
+            <a href="@($"login?returnUrl=checkout")" class="btn btn-primary">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
+            </a>
+        </div>
+    </div>
+}
+else if (!items.Any())
+{
+    <div class="text-center py-5">
+        <i class="bi bi-cart-x" style="font-size: 4rem; color: var(--text-muted);"></i>
+        <h4 class="mt-3">Cart is empty</h4>
+        <a href="catalog" class="btn btn-primary mt-2">Browse Medicines</a>
+    </div>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="PlaceOrder" FormName="CheckoutForm">
+        <DataAnnotationsValidator />
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-geo-alt me-2"></i> Delivery Address
+                        </h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Full Name</label>
+                                <InputText class="form-control" @bind-Value="model.DeliveryAddress.FullName"
+                                           placeholder="Receiver name" />
+                                <ValidationMessage For="@(() => model.DeliveryAddress.FullName)" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                <InputText class="form-control" type="tel" @bind-Value="model.DeliveryAddress.Phone"
+                                           placeholder="+92 300 1234567" />
+                                <ValidationMessage For="@(() => model.DeliveryAddress.Phone)" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Street Address</label>
+                                <InputText class="form-control" @bind-Value="model.DeliveryAddress.Street"
+                                           placeholder="House #, Street, Area" />
+                                <ValidationMessage For="@(() => model.DeliveryAddress.Street)" />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">City</label>
+                                <InputText class="form-control" @bind-Value="model.DeliveryAddress.City"
+                                           placeholder="Karachi" />
+                                <ValidationMessage For="@(() => model.DeliveryAddress.City)" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Postal Code</label>
+                                <InputText class="form-control" @bind-Value="model.DeliveryAddress.PostalCode"
+                                           placeholder="75500" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-credit-card me-2"></i> Payment Method
+                        </h5>
+
+                        <InputRadioGroup @bind-Value="model.PaymentMethod">
+                            <div class="form-check p-3 border rounded mb-2 bg-light">
+                                <InputRadio class="form-check-input" Value="@PaymentMethod.CashOnDelivery" id="cod" />
+                                <label class="form-check-label" for="cod">
+                                    <strong><i class="bi bi-cash-coin me-2"></i> Cash on Delivery</strong>
+                                    <div class="small text-muted">Pay in cash when your order arrives.</div>
+                                </label>
+                            </div>
+                        </InputRadioGroup>
+
+                        <div class="form-check p-3 border rounded opacity-50">
+                            <input class="form-check-input" type="radio" disabled />
+                            <label class="form-check-label">
+                                <strong><i class="bi bi-credit-card me-2"></i> Card Payment</strong>
+                                <div class="small text-muted">Coming soon</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                @if (items.Any(i => i.PrescriptionRequired))
+                {
+                    <div class="alert alert-warning">
+                        <i class="bi bi-clipboard2-pulse me-2"></i>
+                        <strong>Prescription Required:</strong> Some items in your cart require a prescription.
+                        Prescription upload feature coming soon &mdash; for now, our team will contact you to verify.
+                    </div>
+                }
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 80px;">
+                    <div class="card-body">
+                        <h5 class="card-title">Order Summary</h5>
+
+                        <div class="mb-3" style="max-height: 250px; overflow-y: auto;">
+                            @foreach (var item in items)
+                            {
+                                <div class="d-flex justify-content-between small mb-2">
+                                    <div class="text-truncate me-2">
+                                        @item.MedicineName
+                                        <span class="text-muted">× @item.Quantity</span>
+                                    </div>
+                                    <div class="fw-medium">Rs @item.Subtotal.ToString("N0")</div>
+                                </div>
+                            }
+                        </div>
+
+                        <hr />
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal</span>
+                            <span>Rs @total.ToString("N0")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Delivery</span>
+                            <span class="text-success">FREE</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between fw-bold mb-3">
+                            <span>Total</span>
+                            <span class="text-primary fs-5">Rs @total.ToString("N0")</span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(error))
+                        {
+                            <div class="alert alert-danger small">
+                                <i class="bi bi-exclamation-circle me-1"></i> @error
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg" disabled="@placing">
+                            @if (placing)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Placing order...</span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-check2-circle me-2"></i>
+                                <span>Place Order</span>
+                            }
+                        </button>
+
+                        <p class="text-center text-muted small mt-2 mb-0">
+                            <i class="bi bi-shield-check"></i> Your order will be confirmed shortly
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private bool ready;
+    private List<CartItemDto> items = new();
+    private decimal total;
+    private CreateOrderDto model = new();
+    private string? error;
+    private bool placing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        items = await CartSvc.GetItemsAsync();
+        total = items.Sum(i => i.Subtotal);
+
+        if (Auth.CurrentUser is not null)
+        {
+            model.DeliveryAddress.FullName = Auth.CurrentUser.FullName;
+        }
+
+        ready = true;
+    }
+
+    private async Task PlaceOrder()
+    {
+        error = null;
+        placing = true;
+
+        model.Items = items;
+
+        var result = await Orders.CreateOrderAsync(model);
+        placing = false;
+
+        if (result.IsSuccess && result.Order is not null)
+        {
+            await CartSvc.ClearAsync();
+            Nav.NavigateTo($"order-confirmation/{result.Order.Id}");
+        }
+        else
+        {
+            error = result.ErrorMessage;
+        }
+    }
+}

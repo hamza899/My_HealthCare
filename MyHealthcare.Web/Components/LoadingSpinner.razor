@@ -1,0 +1,17 @@
+@namespace MyHealthcare.Web.Components
+
+<div class="spinner-wrap">
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <div class="mt-2 text-muted">@Message</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Message { get; set; }
+}

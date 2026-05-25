@@ -1,0 +1,29 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# User secrets (NEVER commit!)
+# Note: user secrets are stored in %APPDATA%\Microsoft\UserSecrets\, not in repo
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Local environment files
+*.env
+*.env.local
+appsettings.Local.json

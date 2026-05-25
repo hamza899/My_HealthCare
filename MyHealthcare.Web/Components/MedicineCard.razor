@@ -1,0 +1,81 @@
+@namespace MyHealthcare.Web.Components
+@inject CartService Cart
+
+<div class="medicine-card">
+    <a href="@($"medicine/{Medicine.Id}")" class="text-decoration-none">
+        <div class="image">
+            @if (!string.IsNullOrEmpty(Medicine.ImageUrl))
+            {
+                <img src="@Medicine.ImageUrl" alt="@Medicine.Name" class="img-fluid" />
+            }
+            else
+            {
+                <i class="bi bi-capsule"></i>
+            }
+            @if (Medicine.PrescriptionRequired)
+            {
+                <span class="rx-badge">Rx</span>
+            }
+            @if (Medicine.DiscountPrice.HasValue)
+            {
+                var pct = (int)Math.Round((1 - (double)(Medicine.DiscountPrice!.Value / Medicine.Price)) * 100);
+                <span class="discount-badge">-@pct%</span>
+            }
+        </div>
+    </a>
+    <div class="body">
+        <div class="brand">@Medicine.Brand</div>
+        <a href="@($"medicine/{Medicine.Id}")" class="text-decoration-none text-dark">
+            <div class="name">@Medicine.Name</div>
+        </a>
+
+        <div class="price-row">
+            <span class="price">Rs @Medicine.EffectivePrice.ToString("N0")</span>
+            @if (Medicine.DiscountPrice.HasValue)
+            {
+                <span class="original-price">Rs @Medicine.Price.ToString("N0")</span>
+            }
+        </div>
+
+        @if (Medicine.InStock)
+        {
+            <button class="btn btn-primary btn-sm" @onclick="AddToCart" disabled="@adding">
+                @if (added)
+                {
+                    <i class="bi bi-check-circle me-1"></i>
+                    <span>Added!</span>
+                }
+                else
+                {
+                    <i class="bi bi-cart-plus me-1"></i>
+                    <span>Add to Cart</span>
+                }
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-outline-secondary btn-sm" disabled>
+                <i class="bi bi-x-circle me-1"></i> Out of Stock
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MedicineDto Medicine { get; set; } = default!;
+
+    private bool adding;
+    private bool added;
+
+    private async Task AddToCart()
+    {
+        adding = true;
+        await Cart.AddAsync(Medicine);
+        adding = false;
+        added = true;
+        StateHasChanged();
+        await Task.Delay(1200);
+        added = false;
+        StateHasChanged();
+    }
+}

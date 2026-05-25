@@ -1,0 +1,76 @@
+@inherits LayoutComponentBase
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<NavMenu />
+
+<div class="container py-4">
+    @if (!checked_)
+    {
+        <LoadingSpinner />
+    }
+    else if (!isAdmin)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-shield-x text-danger" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Access Denied</h4>
+                <p class="text-muted">Only admins can access this area.</p>
+                <a href="" class="btn btn-primary">Go Home</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <aside class="col-md-3">
+                <div class="card sticky-top" style="top: 80px;">
+                    <div class="card-body p-2">
+                        <div class="text-center py-2 border-bottom mb-2">
+                            <i class="bi bi-shield-lock-fill text-primary" style="font-size: 2rem;"></i>
+                            <div class="fw-bold mt-1">Admin Panel</div>
+                            <small class="text-muted">@Auth.CurrentUser?.Email</small>
+                        </div>
+                        <nav class="nav flex-column">
+                            <NavLink class="nav-link" href="admin" Match="NavLinkMatch.All">
+                                <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                            </NavLink>
+                            <NavLink class="nav-link" href="admin/medicines">
+                                <i class="bi bi-capsule me-2"></i> Medicines
+                            </NavLink>
+                            <NavLink class="nav-link" href="admin/orders">
+                                <i class="bi bi-receipt me-2"></i> Orders
+                            </NavLink>
+                        </nav>
+                    </div>
+                </div>
+            </aside>
+            <main class="col-md-9">
+                @Body
+            </main>
+        </div>
+    }
+</div>
+
+<footer class="border-top mt-5 py-4 bg-white">
+    <div class="container text-center text-muted">
+        <small>&copy; @DateTime.Now.Year My Healthcare &mdash; Admin Panel</small>
+    </div>
+</footer>
+
+@code {
+    private bool checked_;
+    private bool isAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        if (!Auth.IsAuthenticated)
+        {
+            Nav.NavigateTo("login?returnUrl=admin");
+            return;
+        }
+        isAdmin = Auth.CurrentUser?.Role == UserRole.Admin;
+        checked_ = true;
+    }
+}

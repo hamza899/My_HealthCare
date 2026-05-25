@@ -1,0 +1,312 @@
+@page "/admin/medicines"
+@layout AdminLayout
+@inject AdminService Admin
+@inject CategoryService CategoryService
+@inject AuthService Auth
+
+<PageTitle>Manage Medicines - Admin</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-capsule me-2"></i>Medicines</h2>
+    <button class="btn btn-primary" @onclick="OpenAddModal">
+        <i class="bi bi-plus-circle me-2"></i> Add Medicine
+    </button>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Search by name, brand..."
+                   @bind="search" @bind:event="oninput" @onkeydown="OnSearchKey" />
+            <button class="btn btn-outline-secondary" @onclick="Reload">Refresh</button>
+        </div>
+    </div>
+</div>
+
+@if (medicines is null)
+{
+    <LoadingSpinner />
+}
+else if (!medicines.Any())
+{
+    <div class="card">
+        <div class="card-body text-center py-4 text-muted">
+            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+            <p class="mt-2 mb-0">No medicines found.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Brand</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in medicines)
+                    {
+                        <tr class="@(!m.InStock ? "table-warning" : "")">
+                            <td>
+                                <strong>@m.Name</strong>
+                                @if (m.PrescriptionRequired)
+                                {
+                                    <span class="badge bg-danger ms-1" style="font-size: 0.65rem;">Rx</span>
+                                }
+                            </td>
+                            <td><small class="text-muted">@m.Brand</small></td>
+                            <td>
+                                Rs @m.EffectivePrice.ToString("N0")
+                                @if (m.DiscountPrice.HasValue)
+                                {
+                                    <small class="text-decoration-line-through text-muted ms-1">Rs @m.Price.ToString("N0")</small>
+                                }
+                            </td>
+                            <td>
+                                @if (m.StockQuantity == 0)
+                                {
+                                    <span class="badge bg-danger">Out</span>
+                                }
+                                else if (m.StockQuantity < 20)
+                                {
+                                    <span class="badge bg-warning text-dark">@m.StockQuantity low</span>
+                                }
+                                else
+                                {
+                                    <span>@m.StockQuantity</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-success">Active</span>
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="@(() => OpenEditModal(m))">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="@(() => DeleteMedicine(m))">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingId is null ? "Add Medicine" : "Edit Medicine")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <EditForm Model="form" OnValidSubmit="SaveMedicine" FormName="MedicineForm">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        @if (!string.IsNullOrEmpty(error))
+                        {
+                            <div class="alert alert-danger">@error</div>
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Name</label>
+                                <InputText class="form-control" @bind-Value="form.Name" />
+                                <ValidationMessage For="@(() => form.Name)" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Brand</label>
+                                <InputText class="form-control" @bind-Value="form.Brand" />
+                                <ValidationMessage For="@(() => form.Brand)" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="form.Description" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Category</label>
+                                <InputSelect class="form-select" @bind-Value="form.CategoryId">
+                                    <option value="">-- Select category --</option>
+                                    @if (categories is not null)
+                                    {
+                                        @foreach (var c in categories)
+                                        {
+                                            <option value="@c.Id">@c.Name</option>
+                                        }
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Manufacturer</label>
+                                <InputText class="form-control" @bind-Value="form.Manufacturer" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Price (PKR)</label>
+                                <InputNumber class="form-control" @bind-Value="form.Price" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Discount Price</label>
+                                <InputNumber class="form-control" @bind-Value="form.DiscountPrice" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Stock Quantity</label>
+                                <InputNumber class="form-control" @bind-Value="form.StockQuantity" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Image URL (optional)</label>
+                                <InputText class="form-control" @bind-Value="form.ImageUrl" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Usage</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="form.Usage" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Side Effects</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="form.SideEffects" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Ingredients (one per line)</label>
+                                <textarea class="form-control" rows="3"
+                                          value="@string.Join('\n', form.Ingredients)"
+                                          @onchange="OnIngredientsChange"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="form.PrescriptionRequired" id="rx" />
+                                    <label class="form-check-label" for="rx">Prescription Required</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CloseModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" disabled="@saving">
+                            @if (saving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            @(editingId is null ? "Add" : "Save")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<MedicineDto>? medicines;
+    private List<CategoryDto>? categories;
+    private string search = string.Empty;
+
+    private bool showModal;
+    private string? editingId;
+    private CreateMedicineDto form = new();
+    private string? error;
+    private bool saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        categories = await CategoryService.GetAllAsync();
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        medicines = null;
+        StateHasChanged();
+        medicines = await Admin.GetAllMedicinesAsync(search);
+    }
+
+    private async Task OnSearchKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Reload();
+    }
+
+    private void OpenAddModal()
+    {
+        editingId = null;
+        form = new CreateMedicineDto { StockQuantity = 0, Price = 0 };
+        error = null;
+        showModal = true;
+    }
+
+    private void OpenEditModal(MedicineDto m)
+    {
+        editingId = m.Id;
+        form = new CreateMedicineDto
+        {
+            Name = m.Name,
+            Description = m.Description,
+            CategoryId = m.CategoryId,
+            Brand = m.Brand,
+            Price = m.Price,
+            DiscountPrice = m.DiscountPrice,
+            StockQuantity = m.StockQuantity,
+            ImageUrl = m.ImageUrl,
+            PrescriptionRequired = m.PrescriptionRequired,
+            Ingredients = m.Ingredients.ToList(),
+            Usage = m.Usage,
+            SideEffects = m.SideEffects,
+            Manufacturer = m.Manufacturer
+        };
+        error = null;
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        editingId = null;
+    }
+
+    private void OnIngredientsChange(ChangeEventArgs e)
+    {
+        var text = e.Value?.ToString() ?? "";
+        form.Ingredients = text
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+    }
+
+    private async Task SaveMedicine()
+    {
+        error = null;
+        saving = true;
+
+        var result = editingId is null
+            ? await Admin.CreateMedicineAsync(form)
+            : await Admin.UpdateMedicineAsync(editingId, form);
+
+        saving = false;
+
+        if (result.IsSuccess)
+        {
+            CloseModal();
+            await Reload();
+        }
+        else
+        {
+            error = result.ErrorMessage;
+        }
+    }
+
+    private async Task DeleteMedicine(MedicineDto m)
+    {
+        var success = await Admin.DeleteMedicineAsync(m.Id);
+        if (success) await Reload();
+    }
+}
