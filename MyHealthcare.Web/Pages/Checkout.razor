@@ -37,8 +37,7 @@ else if (!items.Any())
 }
 else
 {
-    <EditForm Model="model" OnValidSubmit="PlaceOrder" FormName="CheckoutForm">
-        <DataAnnotationsValidator />
+    <EditForm Model="model" OnSubmit="PlaceOrder" FormName="CheckoutForm">
 
         <div class="row g-4">
             <div class="col-lg-8">
@@ -194,6 +193,7 @@ else
         await Auth.InitializeAsync();
         items = await CartSvc.GetItemsAsync();
         total = items.Sum(i => i.Subtotal);
+        model.Items = items;
 
         if (Auth.CurrentUser is not null)
         {
