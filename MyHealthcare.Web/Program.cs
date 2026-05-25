@@ -11,6 +11,10 @@ var apiSettings = builder.Configuration.GetSection("ApiSettings").Get<ApiSetting
                   ?? new ApiSettings();
 builder.Services.AddSingleton(apiSettings);
 
+var cloudinarySettings = builder.Configuration.GetSection("Cloudinary").Get<CloudinarySettings>()
+                         ?? new CloudinarySettings();
+builder.Services.AddSingleton(cloudinarySettings);
+
 builder.Services.AddSingleton<LocalStorageService>();
 
 builder.Services.AddSingleton<AuthService>(sp => new AuthService(
@@ -33,5 +37,6 @@ builder.Services.AddScoped<MedicineService>();
 builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<PrescriptionService>();
 
 await builder.Build().RunAsync();

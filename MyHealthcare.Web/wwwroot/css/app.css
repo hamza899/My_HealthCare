@@ -637,6 +637,50 @@ a:hover { color: var(--primary-dark); }
     .timeline-connector { margin-top: 17px; }
 }
 
+/* === Prescription Uploader === */
+.prescription-uploader { width: 100%; }
+
+.upload-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 140px;
+    padding: 1.5rem;
+    border: 2px dashed var(--border);
+    border-radius: 0.75rem;
+    background: var(--bg-light);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.upload-zone:hover:not(.uploading) {
+    border-color: var(--primary);
+    background: var(--primary-lighter);
+}
+.upload-zone.uploading {
+    border-style: solid;
+    border-color: var(--primary);
+    background: var(--primary-lighter);
+    cursor: wait;
+}
+
+.prescription-uploaded {
+    padding: 1rem;
+    background: var(--primary-lighter);
+    border: 1px solid var(--primary-light);
+    border-radius: 0.75rem;
+}
+
+.prescription-thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    border: 2px solid white;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+}
+
 /* === Form === */
 .form-control:focus, .form-select:focus {
     border-color: var(--primary);

@@ -1,0 +1,111 @@
+@namespace MyHealthcare.Web.Components
+@inject PrescriptionService Prescriptions
+
+<div class="prescription-uploader">
+    @if (uploadedPrescription is not null)
+    {
+        <div class="prescription-uploaded">
+            <div class="d-flex align-items-start gap-3">
+                <img src="@uploadedPrescription.ImageUrl" alt="Prescription"
+                     class="prescription-thumbnail" />
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <strong>Prescription uploaded</strong>
+                    </div>
+                    <small class="text-muted">
+                        Status: <span class="badge bg-warning text-dark">Pending Review</span>
+                    </small>
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="Reset">
+                            <i class="bi bi-arrow-counterclockwise"></i> Upload different
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (!Prescriptions.IsConfigured)
+        {
+            <div class="alert alert-warning small mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Prescription upload is not configured. Hamari team aap se contact karegi.
+            </div>
+        }
+        else
+        {
+            <label class="upload-zone @(uploading ? "uploading" : "")">
+                <InputFile OnChange="HandleFileSelected" accept="image/*" hidden disabled="@uploading" />
+                @if (uploading)
+                {
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-2"></div>
+                        <div class="fw-semibold">Uploading...</div>
+                        <small class="text-muted">Please wait</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center">
+                        <i class="bi bi-cloud-upload text-primary mb-2" style="font-size: 2.5rem;"></i>
+                        <div class="fw-semibold">Click to upload prescription</div>
+                        <small class="text-muted">JPG, PNG up to 5MB</small>
+                    </div>
+                }
+            </label>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="alert alert-danger small mt-2 mb-0">
+                    <i class="bi bi-exclamation-circle me-1"></i> @error
+                </div>
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public EventCallback<PrescriptionDto> OnUploaded { get; set; }
+    [Parameter] public PrescriptionDto? InitialPrescription { get; set; }
+
+    private bool uploading;
+    private string? error;
+    private PrescriptionDto? uploadedPrescription;
+
+    protected override void OnParametersSet()
+    {
+        uploadedPrescription ??= InitialPrescription;
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        error = null;
+        uploading = true;
+        StateHasChanged();
+
+        var result = await Prescriptions.UploadAsync(e.File);
+        uploading = false;
+
+        if (result.IsSuccess && result.Prescription is not null)
+        {
+            uploadedPrescription = result.Prescription;
+            if (OnUploaded.HasDelegate)
+                await OnUploaded.InvokeAsync(uploadedPrescription);
+        }
+        else
+        {
+            error = result.ErrorMessage;
+        }
+        StateHasChanged();
+    }
+
+    private void Reset()
+    {
+        uploadedPrescription = null;
+        error = null;
+        if (OnUploaded.HasDelegate)
+            _ = OnUploaded.InvokeAsync(null);
+    }
+}

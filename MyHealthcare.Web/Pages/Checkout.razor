@@ -107,12 +107,20 @@ else
                     </div>
                 </div>
 
-                @if (items.Any(i => i.PrescriptionRequired))
+                @if (RequiresPrescription)
                 {
-                    <div class="alert alert-warning">
-                        <i class="bi bi-clipboard2-pulse me-2"></i>
-                        <strong>Prescription Required:</strong> Some items in your cart require a prescription.
-                        Prescription upload feature coming soon &mdash; for now, our team will contact you to verify.
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-clipboard2-pulse me-2 text-danger"></i>
+                                Prescription Required
+                            </h5>
+                            <p class="text-muted small mb-3">
+                                Aap ke cart mein prescription wali medicines hain. Doctor ki prescription ki image
+                                upload karein. Hamari team verify karke order confirm karegi.
+                            </p>
+                            <PrescriptionUploader OnUploaded="OnPrescriptionUploaded" />
+                        </div>
                     </div>
                 }
             </div>
@@ -203,6 +211,14 @@ else
         ready = true;
     }
 
+    private bool RequiresPrescription => items.Any(i => i.PrescriptionRequired);
+
+    private void OnPrescriptionUploaded(PrescriptionDto? p)
+    {
+        model.PrescriptionId = p?.Id;
+        StateHasChanged();
+    }
+
     private async Task PlaceOrder()
     {
         error = null;
@@ -211,6 +227,13 @@ else
         if (validationError is not null)
         {
             error = validationError;
+            StateHasChanged();
+            return;
+        }
+
+        if (RequiresPrescription && string.IsNullOrEmpty(model.PrescriptionId))
+        {
+            error = "Please upload your prescription before placing the order.";
             StateHasChanged();
             return;
         }

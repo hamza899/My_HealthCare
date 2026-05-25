@@ -131,6 +131,18 @@ public class AdminService
         }
     }
 
+    public async Task<PrescriptionDto?> GetPrescriptionAsync(string id)
+    {
+        try
+        {
+            return await _http.GetFromJsonAsync<PrescriptionDto>($"api/prescriptions/{id}");
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task<bool> UpdateOrderStatusAsync(string orderId, OrderStatus status)
     {
         try
