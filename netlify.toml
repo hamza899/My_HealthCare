@@ -1,0 +1,17 @@
+[build]
+  publish = "publish/wwwroot"
+  command = """
+    curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh && \
+    chmod +x dotnet-install.sh && \
+    ./dotnet-install.sh --channel 10.0 --install-dir $HOME/.dotnet && \
+    export PATH=$HOME/.dotnet:$PATH && \
+    export DOTNET_ROOT=$HOME/.dotnet && \
+    dotnet --version && \
+    dotnet workload install wasm-tools --skip-manifest-update && \
+    dotnet publish MyHealthcare.Web/MyHealthcare.Web.csproj -c Release -o publish
+  """
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
