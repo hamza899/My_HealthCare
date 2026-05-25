@@ -1,0 +1,94 @@
+@namespace MyHealthcare.Web.Components
+
+@if (Order.OrderStatus == OrderStatus.Cancelled)
+{
+    <div class="order-cancelled">
+        <div class="cancelled-icon">
+            <i class="bi bi-x-circle-fill"></i>
+        </div>
+        <div>
+            <div class="fw-bold">Order Cancelled</div>
+            <small class="text-muted">This order was cancelled and won't be delivered.</small>
+        </div>
+    </div>
+}
+else
+{
+    <div class="order-timeline @(Compact ? "compact" : "")">
+        @{
+            var currentIndex = StepIndex(Order.OrderStatus);
+        }
+        @for (int i = 0; i < Steps.Length; i++)
+        {
+            var step = Steps[i];
+            var isCompleted = i < currentIndex;
+            var isCurrent = i == currentIndex;
+            var stateClass = isCompleted ? "completed" : isCurrent ? "current" : "pending";
+
+            <div class="timeline-step @stateClass">
+                <div class="step-marker">
+                    @if (isCompleted)
+                    {
+                        <i class="bi bi-check-lg"></i>
+                    }
+                    else
+                    {
+                        <i class="bi @step.Icon"></i>
+                    }
+                </div>
+                <div class="step-label">@step.Label</div>
+                @if (!Compact)
+                {
+                    <div class="step-date">
+                        @GetDateForStep(i)
+                    </div>
+                }
+            </div>
+
+            @if (i < Steps.Length - 1)
+            {
+                <div class="timeline-connector @(i < currentIndex ? "completed" : "")"></div>
+            }
+        }
+    </div>
+
+    @if (!Compact && Order.OrderStatus != OrderStatus.Delivered)
+    {
+        <div class="text-center mt-3 text-muted small">
+            <i class="bi bi-clock-history me-1"></i>
+            Estimated delivery: <strong>2-3 business days</strong>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public OrderDto Order { get; set; } = default!;
+    [Parameter] public bool Compact { get; set; }
+
+    private record Step(string Label, string Icon, OrderStatus Status);
+
+    private static readonly Step[] Steps =
+    {
+        new("Order Placed", "bi-bag-check", OrderStatus.Pending),
+        new("Confirmed", "bi-clipboard-check", OrderStatus.Confirmed),
+        new("Shipped", "bi-box-seam", OrderStatus.Shipped),
+        new("Delivered", "bi-house-check", OrderStatus.Delivered),
+    };
+
+    private static int StepIndex(OrderStatus status) => status switch
+    {
+        OrderStatus.Pending => 0,
+        OrderStatus.Confirmed => 1,
+        OrderStatus.Shipped => 2,
+        OrderStatus.Delivered => 3,
+        _ => 0
+    };
+
+    private string GetDateForStep(int index)
+    {
+        if (index == 0) return Order.CreatedAt.ToLocalTime().ToString("dd MMM, hh:mm tt");
+        if (index == 3 && Order.DeliveredAt.HasValue)
+            return Order.DeliveredAt.Value.ToLocalTime().ToString("dd MMM, hh:mm tt");
+        return "";
+    }
+}
