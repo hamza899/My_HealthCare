@@ -5,30 +5,97 @@
 <PageTitle>My Healthcare - Online Pharmacy</PageTitle>
 
 <section class="hero">
-    <div class="px-4 px-md-5">
+    <div class="hero-pattern"></div>
+    <div class="hero-content">
         <div class="row align-items-center">
             <div class="col-md-7">
-                <h1 class="display-5">Aap ki sehat, hamari zimmedari</h1>
+                <div class="hero-badge mb-3">
+                    <i class="bi bi-shield-check"></i> Trusted by 1000+ customers
+                </div>
+                <h1 class="display-5 fw-bold">Aap ki sehat, hamari zimmedari</h1>
                 <p class="lead mb-4">
                     Pakistan ki sab se trusted online pharmacy. Original medicines, fast delivery,
                     aur affordable prices &mdash; ghar baithay order karein.
                 </p>
-                <a href="catalog" class="btn btn-light btn-lg">
-                    <i class="bi bi-capsule me-2"></i> Browse Medicines
-                </a>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="catalog" class="btn btn-light btn-lg fw-semibold">
+                        <i class="bi bi-capsule me-2"></i> Browse Medicines
+                    </a>
+                    <a href="#categories" class="btn btn-outline-light btn-lg">
+                        Shop by Category
+                    </a>
+                </div>
             </div>
             <div class="col-md-5 text-center d-none d-md-block">
-                <i class="bi bi-heart-pulse" style="font-size: 12rem; opacity: 0.2;"></i>
+                <div class="hero-icon">
+                    <i class="bi bi-heart-pulse"></i>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="mb-5">
-    <h2 class="section-title">Shop by Category</h2>
+<section class="features-strip mb-5">
+    <div class="row g-3">
+        <div class="col-6 col-md-3">
+            <div class="feature-card">
+                <div class="icon"><i class="bi bi-truck"></i></div>
+                <div>
+                    <div class="title">Free Delivery</div>
+                    <div class="subtitle">Across Pakistan</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="feature-card">
+                <div class="icon"><i class="bi bi-cash-coin"></i></div>
+                <div>
+                    <div class="title">Cash on Delivery</div>
+                    <div class="subtitle">No advance payment</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="feature-card">
+                <div class="icon"><i class="bi bi-patch-check"></i></div>
+                <div>
+                    <div class="title">100% Original</div>
+                    <div class="subtitle">Authentic medicines</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="feature-card">
+                <div class="icon"><i class="bi bi-headset"></i></div>
+                <div>
+                    <div class="title">Customer Support</div>
+                    <div class="subtitle">7 days a week</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="categories" class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="section-title mb-1">Shop by Category</h2>
+            <p class="text-muted small mb-0">Find what you need quickly</p>
+        </div>
+        <a href="catalog" class="text-decoration-none d-none d-md-inline">
+            All Categories <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
     @if (categories is null)
     {
-        <LoadingSpinner />
+        <div class="row g-3">
+            @for (int i = 0; i < 8; i++)
+            {
+                <div class="col-6 col-sm-4 col-md-3">
+                    <div class="category-card skeleton" style="height: 130px;"></div>
+                </div>
+            }
+        </div>
     }
     else if (!categories.Any())
     {
@@ -40,7 +107,7 @@
             @foreach (var c in categories)
             {
                 <div class="col-6 col-sm-4 col-md-3">
-                    <a class="category-card" href="@($"catalog?categoryId={c.Id}")">
+                    <a class="category-card category-@c.Slug" href="@($"catalog?categoryId={c.Id}")">
                         <div class="category-icon">
                             <i class="bi @GetIcon(c.Slug)"></i>
                         </div>
@@ -54,14 +121,24 @@
 
 <section class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="section-title mb-0">Featured Medicines</h2>
+        <div>
+            <h2 class="section-title mb-1">Featured Medicines</h2>
+            <p class="text-muted small mb-0">Popular and recommended products</p>
+        </div>
         <a href="catalog" class="text-decoration-none">
             View All <i class="bi bi-arrow-right"></i>
         </a>
     </div>
     @if (featured is null)
     {
-        <LoadingSpinner />
+        <div class="row g-3">
+            @for (int i = 0; i < 8; i++)
+            {
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="medicine-card skeleton" style="height: 320px;"></div>
+                </div>
+            }
+        </div>
     }
     else if (!featured.Any())
     {
@@ -78,6 +155,23 @@
             }
         </div>
     }
+</section>
+
+<section class="cta-section mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h3 class="fw-bold mb-2">Need a doctor consultation?</h3>
+            <p class="mb-md-0">
+                Hamari team aap ki health queries ka jawab dene ke liye 7 din available hai.
+                Order karne se pehle ya baad mein hum se baat karein.
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a href="tel:+923000000000" class="btn btn-light btn-lg fw-semibold">
+                <i class="bi bi-telephone me-2"></i> Call Us
+            </a>
+        </div>
+    </div>
 </section>
 
 @code {
